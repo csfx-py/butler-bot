@@ -22,13 +22,19 @@ const axiosTC = axios.create({
 
 bot.start((ctx) => ctx.reply("Welcome"));
 bot.help((ctx) =>
-  ctx.reply(`
+  ctx.reply(
+    `
 /start - Start the bot\n
 /help - Show this help\n
 /phone <10 digit number> - Get the phone number details\n
 /translate $<optional from> $<to> <text> - Translate the text. Default <from> is auto detect and <to> is en.
 example: /translate $english $hindi hello, how are you?\n
-/wifi <ssid> <password> <optional auth-type> - Create qr code to connect wifi. Default <auth type> is WPA/WPA2, You can pass "WEP" or "none" if required. \n`)
+/wifi <ssid> <password> <optional auth-type> - Create qr code to connect wifi. Default <auth type> is WPA/WPA2, You can pass "WEP" or "none" if required. \n
+Nothing is stored by the bot, the source code is available on https://github.com/csfx-py/butler-bot\n
+Consider giving a star on github if you like this bot.`,
+    // disable link previews
+    { disable_web_page_preview: true }
+  )
 );
 bot.on("sticker", (ctx) => ctx.reply("👍"));
 bot.hears("hi", (ctx) => ctx.reply("Hey there"));
