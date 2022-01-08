@@ -3,6 +3,7 @@ const { Telegraf } = require("telegraf");
 const axios = require("axios");
 const translate = require("translate-google");
 const langCode = require("./util/langCode");
+const qr = require("qrcode");
 
 const bot = new Telegraf(process.env.BOT_TOKEN);
 
@@ -25,8 +26,9 @@ bot.help((ctx) =>
 /start - Start the bot\n
 /help - Show this help\n
 /phone <10 digit number> - Get the phone number details\n
-/translate $<optional from> $<to> <text> - Translate the text. Default from is auto detect and to is en.
-example: /translate $english $hindi hello, how are you?\n`)
+/translate $<optional from> $<to> <text> - Translate the text. Default <from> is auto detect and <to> is en.
+example: /translate $english $hindi hello, how are you?\n
+/wifi <ssid> <password> <optional auth-type> - Create qr code to connect wifi. Default <auth type> is WPA/WPA2, You can pass "WEP" or "none" if required. \n`)
 );
 bot.on("sticker", (ctx) => ctx.reply("👍"));
 bot.hears("hi", (ctx) => ctx.reply("Hey there"));
@@ -103,6 +105,37 @@ bot.command("translate", async (ctx) => {
   try {
     const res = await translate(text, { from, to });
     return ctx.reply(res);
+  } catch (error) {
+    console.log(error);
+    return ctx.reply("Something went wrong");
+  }
+});
+
+// /wifi command to generate a qr code
+bot.command("wifi", async (ctx) => {
+  const ssid = ctx.message.text.split(" ")[1];
+  const password = ctx.message.text.split(" ")[2];
+  let auth = ctx.message.text.split(" ")[3]?.toLowerCase() || "wpa";
+  if (!ssid || !password) {
+    return ctx.reply("Please enter a wifi name and password");
+  }
+
+  if (auth !== "wpa" && auth !== "wep" && auth !== "none") {
+    return ctx.reply("Please enter a valid auth type");
+  }
+
+  console.log(ssid, password, auth);
+
+  try {
+    const qrCode = await qr.toDataURL(
+      `WIFI:T:${auth};S:${ssid};P:${password};;`,
+      {
+        errorCorrectionLevel: "Q",
+      }
+    );
+    return ctx.replyWithPhoto({
+      source: Buffer.from(qrCode.split(",")[1], "base64"),
+    });
   } catch (error) {
     console.log(error);
     return ctx.reply("Something went wrong");
