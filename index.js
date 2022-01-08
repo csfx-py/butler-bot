@@ -1,11 +1,20 @@
 require("dotenv").config();
+const app = require("express")();
+const URL = process.env.URL || `https://${process.env.APP_NAME}.herokuapp.com`;
+const PORT = process.env.PORT || 3000;
+
 const { Telegraf } = require("telegraf");
+
 const axios = require("axios");
+
 const translate = require("translate-google");
 const langCode = require("./util/langCode");
+
 const qr = require("qrcode");
 
 const bot = new Telegraf(process.env.BOT_TOKEN);
+bot.telegram.setWebhook(`${URL}/bot${process.env.BOT_TOKEN}`);
+app.use(bot.webhookCallback(`/bot${process.env.BOT_TOKEN}`));
 
 const TC_TOKENS = process.env.TC_TOKENS.split(" ");
 const TC_TOKENS_N = TC_TOKENS.length;
@@ -15,12 +24,10 @@ let usage = 0;
 TC_URL = "https://webapi-noneu.truecaller.com";
 const axiosTC = axios.create({
   baseURL: TC_URL,
-  headers: {
-    authorization: `Bearer ${TC_TOKENS[tc_index]}`,
-  },
 });
 
-bot.start((ctx) => ctx.reply("Welcome"));
+bot.start((ctx) => ctx.reply(`Hello ${ctx.from.first_name}`));
+
 bot.help((ctx) =>
   ctx.reply(
     `
@@ -53,6 +60,9 @@ bot.command("phone", async (ctx) => {
       params: {
         countryCode: "in",
         q: phone,
+      },
+      headers: {
+        authorization: `Bearer ${TC_TOKENS[tc_index]}`,
       },
     });
     usage++;
@@ -150,6 +160,10 @@ bot.command("wifi", async (ctx) => {
 
 bot.launch();
 
-// Enable graceful stop
-process.once("SIGINT", () => bot.stop("SIGINT"));
-process.once("SIGTERM", () => bot.stop("SIGTERM"));
+app.get("/", (req, res) => {
+  res.send("Hello!");
+});
+
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+});
