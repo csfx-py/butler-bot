@@ -140,8 +140,6 @@ bot.command("wifi", async (ctx) => {
     return ctx.reply("Please enter a valid auth type");
   }
 
-  console.log(ssid, password, auth);
-
   try {
     const qrCode = await qr.toDataURL(
       `WIFI:T:${auth};S:${ssid};P:${password};;`,
@@ -149,6 +147,8 @@ bot.command("wifi", async (ctx) => {
         errorCorrectionLevel: "Q",
       }
     );
+    // delete previous message
+    ctx.deleteMessage();
     return ctx.replyWithPhoto({
       source: Buffer.from(qrCode.split(",")[1], "base64"),
     });
