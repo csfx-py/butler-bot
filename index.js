@@ -2,6 +2,7 @@ require("dotenv").config();
 const app = require("express")();
 const URL = process.env.URL || `https://${process.env.APP_NAME}.herokuapp.com`;
 const PORT = process.env.PORT || 3000;
+const cron = require("node-cron");
 
 const { Telegraf } = require("telegraf");
 
@@ -20,6 +21,11 @@ const TC_TOKENS = process.env.TC_TOKENS.split(" ");
 const TC_TOKENS_N = TC_TOKENS.length;
 let tc_index = 0;
 let usage = 0;
+// cron schedule for every midnight
+cron.schedule("0 0 * * *", () => {
+  usage = 0;
+  tc_index = 0;
+});
 
 TC_URL = "https://webapi-noneu.truecaller.com";
 const axiosTC = axios.create({
@@ -56,6 +62,7 @@ bot.command("phone", async (ctx) => {
   }
 
   try {
+    console.log("TC_TOKEN: ", TC_TOKENS[tc_index]);
     const res = await axiosTC.get("/search", {
       params: {
         countryCode: "in",
@@ -95,30 +102,30 @@ bot.command("phone", async (ctx) => {
 
 bot.command("translate", async (ctx) => {
   let from, to, text;
-  if (
-    ctx.message.text.split(" ")[1].startsWith("$") &&
-    ctx.message.text.split(" ")[2].startsWith("$")
-  ) {
-    from = ctx.message.text.split(" ")[1].substring(1);
-    to = ctx.message.text.split(" ")[2].substring(1);
-    text = ctx.message.text.split(" ").slice(3).join(" ");
-  } else if (
-    ctx.message.text.split(" ")[1].startsWith("$") &&
-    !ctx.message.text.split(" ")[2].startsWith("$")
-  ) {
-    from = "Automatic";
-    to = ctx.message.text.split(" ")[1].substring(1);
-    text = ctx.message.text.split(" ").slice(2).join(" ");
-  } else {
-    from = "Automatic";
-    to = "English";
-    text = ctx.message.text.split(" ").slice(1).join(" ");
-  }
-
-  from = langCode(from.charAt(0).toUpperCase() + from.slice(1));
-  to = langCode(to.charAt(0).toUpperCase() + to.slice(1));
-
   try {
+    if (
+      ctx.message.text.split(" ")[1]?.startsWith("$") &&
+      ctx.message.text.split(" ")[2]?.startsWith("$")
+    ) {
+      from = ctx.message.text.split(" ")[1]?.substring(1);
+      to = ctx.message.text.split(" ")[2]?.substring(1);
+      text = ctx.message.text.split(" ").slice(3).join(" ");
+    } else if (
+      ctx.message.text.split(" ")[1]?.startsWith("$") &&
+      !ctx.message.text.split(" ")[2]?.startsWith("$")
+    ) {
+      from = "Automatic";
+      to = ctx.message.text.split(" ")[1]?.substring(1);
+      text = ctx.message.text.split(" ").slice(2).join(" ");
+    } else {
+      from = "Automatic";
+      to = "English";
+      text = ctx.message.text.split(" ").slice(1).join(" ");
+    }
+
+    from = langCode(from.charAt(0).toUpperCase() + from.slice(1));
+    to = langCode(to.charAt(0).toUpperCase() + to.slice(1));
+
     const res = await translate(text, { from, to });
     return ctx.reply(res);
   } catch (error) {
@@ -129,18 +136,18 @@ bot.command("translate", async (ctx) => {
 
 // /wifi command to generate a qr code
 bot.command("wifi", async (ctx) => {
-  const ssid = ctx.message.text.split(" ")[1];
-  const password = ctx.message.text.split(" ")[2];
-  let auth = ctx.message.text.split(" ")[3]?.toLowerCase() || "wpa";
-  if (!ssid || !password) {
-    return ctx.reply("Please enter a wifi name and password");
-  }
-
-  if (auth !== "wpa" && auth !== "wep" && auth !== "none") {
-    return ctx.reply("Please enter a valid auth type");
-  }
-
   try {
+    const ssid = ctx.message.text.split(" ")[1];
+    const password = ctx.message.text.split(" ")[2];
+    let auth = ctx.message.text.split(" ")[3]?.toLowerCase() || "wpa";
+    if (!ssid || !password) {
+      return ctx.reply("Please enter a wifi name and password");
+    }
+
+    if (auth !== "wpa" && auth !== "wep" && auth !== "none") {
+      return ctx.reply("Please enter a valid auth type");
+    }
+
     const qrCode = await qr.toDataURL(
       `WIFI:T:${auth};S:${ssid};P:${password};;`,
       {
