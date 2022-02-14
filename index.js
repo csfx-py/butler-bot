@@ -21,10 +21,11 @@ const TC_TOKENS = process.env.TC_TOKENS.split(" ");
 const TC_TOKENS_N = TC_TOKENS.length;
 let tc_index = 0;
 let usage = 0;
+let offset = 0;
 // cron schedule for every midnight
 cron.schedule("0 0 * * *", () => {
   usage = 0;
-  tc_index = 0;
+  tc_index = offset;
 });
 
 TC_URL = "https://webapi-noneu.truecaller.com";
@@ -54,6 +55,9 @@ bot.hears("hi", (ctx) => ctx.reply("Hey there"));
 
 // bot command to get 10 digit phone number
 bot.command("phone", async (ctx) => {
+  if (tc_index >= TC_TOKENS_N && usage === 5)
+    return ctx.reply("Quota exceeded for the day");
+
   // get the phone number from the user
   const phone = ctx.message.text.split(" ")[1];
   // check if the phone number is 10 digits
@@ -93,9 +97,14 @@ bot.command("phone", async (ctx) => {
       Twitter: ${res.data.twitter?.uri ? res.data.twitter.uri : "N/A"}\n`
     );
   } catch (error) {
-    console.log(error);
+    // console.log(error);
     if (error.response?.status === 429)
       return ctx.reply("TrueCaller API rate limit exceeded");
+    if (error.response?.status === 401) {
+      usage = 0;
+      tc_index = (tc_index + 1) % TC_TOKENS_N;
+      offset++;
+    }
     return ctx.reply("Something went wrong");
   }
 });
